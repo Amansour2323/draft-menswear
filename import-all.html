@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>DRAFT — Full Import</title>
+<style>body{background:#0a0a0a;color:#f0ece6;font-family:'Outfit',sans-serif;padding:40px;max-width:700px;margin:0 auto}
+h1{color:#c8b07a;font-size:24px;letter-spacing:8px;text-align:center;margin-bottom:8px}
+p.sub{text-align:center;color:#7a7468;font-size:12px;margin-bottom:32px}
+.btn{padding:14px 32px;background:#c8b07a;color:#0a0a0a;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin:8px;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:#d4bc86}
+.btn.danger{background:#e06060;color:#fff}
+.btn.sm{padding:10px 20px;font-size:12px}
+.card{background:#1a1917;border:1px solid #2a2822;border-radius:12px;padding:20px;margin:16px 0}
+.card h3{color:#c8b07a;font-size:14px;margin-bottom:12px;letter-spacing:2px}
+.row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #2a2822}
+.row:last-child{border:none}
+.row .label{color:#b5ae9e}
+.row .val{color:#f0ece6;font-family:'IBM Plex Mono',monospace;font-weight:600}
+.row .val.gold{color:#c8b07a}
+.row .val.green{color:#6abf69}
+.row .val.red{color:#e06060}
+.msg{text-align:center;margin:16px 0;font-size:14px;padding:12px;border-radius:8px}
+.center{text-align:center}
+.warn{background:rgba(232,168,56,0.1);border:1px solid rgba(232,168,56,0.2);color:#e8a838;padding:12px;border-radius:8px;font-size:12px;margin:16px 0}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head><body>
+<h1>DRAFT IMPORT</h1>
+<p class="sub">Import all data into the POS system</p>
+
+<div class="card" id="currentCard"></div>
+
+<div class="center">
+<button class="btn" onclick="document.getElementById('fi').click()">📤 Load Import File (JSON)</button>
+<input type="file" id="fi" accept=".json" style="display:none" onchange="loadFile(event)">
+</div>
+
+<div id="preview" style="display:none">
+<div class="card" id="previewCard"></div>
+<div class="warn">⚠️ This will REPLACE all existing Products, Customers, Suppliers, Expenses and Payment Accounts. Sales will be kept.</div>
+<div class="center">
+<button class="btn" onclick="doImport()">✓ IMPORT ALL DATA</button>
+<button class="btn danger" onclick="clearEverything()">🗑️ CLEAR EVERYTHING</button>
+</div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+const K={products:"d_products",customers:"d_customers",suppliers:"d_suppliers",expenses:"d_expenses",accounts:"d_accounts",sales:"d_sales",safe:"d_safe"};
+const g=k=>JSON.parse(localStorage.getItem(K[k])||"[]");
+const gO=k=>JSON.parse(localStorage.getItem(K[k])||"{}");
+const fm=n=>"EGP "+n.toLocaleString();
+
+function showCurrent(){
+  const s=g("sales"),p=g("products"),c=g("customers"),e=g("expenses"),a=gO("accounts"),sup=g("suppliers");
+  const sales=s.filter(x=>x.status==="completed"&&!x.isReturn);
+  const rets=s.filter(x=>x.isReturn);
+  document.getElementById("currentCard").innerHTML=
+    '<h3>📊 CURRENT SYSTEM DATA</h3>'+
+    '<div class="row"><span class="label">Products</span><span class="val">'+p.length+'</span></div>'+
+    '<div class="row"><span class="label">Customers</span><span class="val">'+c.length+'</span></div>'+
+    '<div class="row"><span class="label">Suppliers</span><span class="val">'+sup.length+'</span></div>'+
+    '<div class="row"><span class="label">Sales</span><span class="val">'+sales.length+'</span></div>'+
+    '<div class="row"><span class="label">Returns</span><span class="val red">'+rets.length+'</span></div>'+
+    '<div class="row"><span class="label">Expenses</span><span class="val red">'+fm(e.reduce((a,b)=>a+b.amount,0))+'</span></div>'+
+    '<div class="row"><span class="label">Cash</span><span class="val gold">'+fm(a.Cash||0)+'</span></div>'+
+    '<div class="row"><span class="label">Card</span><span class="val gold">'+fm(a.Card||0)+'</span></div>'+
+    '<div class="row"><span class="label">Vodafone Cash</span><span class="val gold">'+fm(a["Vodafone Cash"]||0)+'</span></div>'+
+    '<div class="row"><span class="label">InstaPay</span><span class="val gold">'+fm(a.InstaPay||0)+'</span></div>';
+}
+
+let pending=null;
+
+function loadFile(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      pending=JSON.parse(e.target.result);
+      const p=pending.products||[],c=pending.customers||[],s=pending.suppliers||[],ex=pending.expenses||[],a=pending.accounts||{};
+      document.getElementById("preview").style.display="block";
+      document.getElementById("previewCard").innerHTML=
+        '<h3>📦 DATA TO IMPORT</h3>'+
+        '<div class="row"><span class="label">Products</span><span class="val green">'+p.length+'</span></div>'+
+        '<div class="row"><span class="label">Customers</span><span class="val green">'+c.length+'</span></div>'+
+        '<div class="row"><span class="label">Suppliers</span><span class="val green">'+s.length+'</span></div>'+
+        '<div class="row"><span class="label">Expenses</span><span class="val green">'+ex.length+' ('+fm(ex.reduce((a,b)=>a+b.amount,0))+')</span></div>'+
+        '<div class="row"><span class="label">Cash</span><span class="val gold">'+fm(a.Cash||0)+'</span></div>'+
+        '<div class="row"><span class="label">Card</span><span class="val gold">'+fm(a.Card||0)+'</span></div>'+
+        '<div class="row"><span class="label">Vodafone Cash</span><span class="val gold">'+fm(a["Vodafone Cash"]||0)+'</span></div>'+
+        '<div class="row"><span class="label">InstaPay</span><span class="val gold">'+fm(a.InstaPay||0)+'</span></div>';
+      msg("✓ File loaded! Review and click IMPORT","#6abf69");
+    }catch(err){msg("Error: "+err.message,"#e06060")}
+  };
+  reader.readAsText(file);
+}
+
+function doImport(){
+  if(!pending)return;
+  if(!confirm("This will replace Products, Customers, Suppliers, Expenses and Accounts. Continue?"))return;
+  
+  if(pending.products) localStorage.setItem(K.products, JSON.stringify(pending.products));
+  if(pending.customers) localStorage.setItem(K.customers, JSON.stringify(pending.customers));
+  if(pending.suppliers) localStorage.setItem(K.suppliers, JSON.stringify(pending.suppliers));
+  if(pending.expenses) localStorage.setItem(K.expenses, JSON.stringify(pending.expenses));
+  if(pending.accounts) localStorage.setItem(K.accounts, JSON.stringify(pending.accounts));
+  
+  msg("✅ ALL DATA IMPORTED SUCCESSFULLY!<br><br>Products: "+(pending.products||[]).length+"<br>Customers: "+(pending.customers||[]).length+"<br>Suppliers: "+(pending.suppliers||[]).length+"<br>Expenses: "+(pending.expenses||[]).length+"<br><br>Go to Dashboard to see everything.","#6abf69");
+  showCurrent();
+  pending=null;
+}
+
+function clearEverything(){
+  if(!confirm("⚠️ DELETE ALL DATA? This cannot be undone!"))return;
+  if(!confirm("Are you REALLY sure?"))return;
+  Object.values(K).forEach(k=>localStorage.removeItem(k));
+  msg("All data cleared.","#e06060");
+  showCurrent();
+}
+
+function msg(text,color){
+  document.getElementById("msg").innerHTML='<div class="msg" style="background:'+color+'15;border:1px solid '+color+'30;color:'+color+'">'+text+'</div>';
+}
+
+showCurrent();
+</script></body></html>
