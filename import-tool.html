@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>DRAFT Import Tool</title>
+<style>body{background:#0a0a0a;color:#f0ece6;font-family:'Outfit',sans-serif;padding:40px;text-align:center}
+h1{color:#c8b07a;font-size:24px;letter-spacing:8px;margin-bottom:20px}
+.btn{padding:14px 32px;background:#c8b07a;color:#0a0a0a;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin:8px}
+.btn:hover{background:#d4bc86}
+.btn.danger{background:#e06060;color:#fff}
+textarea{width:80%;height:200px;background:#1a1917;color:#f0ece6;border:1px solid #2a2822;border-radius:8px;padding:12px;font-size:12px;font-family:monospace}
+.stats{background:#1a1917;border:1px solid #2a2822;border-radius:8px;padding:20px;margin:20px auto;max-width:500px;text-align:left;font-size:13px}
+.stats div{padding:4px 0;display:flex;justify-content:space-between}
+.stats .val{color:#c8b07a;font-weight:600;font-family:monospace}
+.msg{margin:16px 0;font-size:14px}
+</style></head><body>
+<h1>DRAFT — DATA IMPORT</h1>
+<p style="color:#7a7468;margin-bottom:24px">Import sales data into the POS system</p>
+
+<div id="currentStats" class="stats"></div>
+
+<div style="margin:24px 0">
+<button class="btn" onclick="document.getElementById('fileInput').click()">📤 Load Sales JSON File</button>
+<input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadFile(event)">
+</div>
+
+<div id="preview" style="display:none">
+<div id="previewStats" class="stats"></div>
+<div style="margin:16px 0">
+<button class="btn" onclick="doImport()">✓ IMPORT INTO SYSTEM</button>
+<button class="btn danger" onclick="clearAll()">🗑️ CLEAR ALL DATA</button>
+</div>
+</div>
+
+<div id="msg" class="msg"></div>
+
+<script>
+function showCurrent() {
+  const sales = JSON.parse(localStorage.getItem('d_sales') || '[]');
+  const s = sales.filter(x => x.status === 'completed' && !x.isReturn);
+  const r = sales.filter(x => x.isReturn);
+  document.getElementById('currentStats').innerHTML = '<h3 style="color:#c8b07a;margin-bottom:8px">Current System Data</h3>' +
+    '<div><span>Total Sales:</span><span class="val">' + s.length + '</span></div>' +
+    '<div><span>Total Returns:</span><span class="val">' + r.length + '</span></div>' +
+    '<div><span>Revenue:</span><span class="val">EGP ' + s.reduce((a,b) => a + b.total, 0).toLocaleString() + '</span></div>' +
+    '<div><span>Products:</span><span class="val">' + JSON.parse(localStorage.getItem('d_products') || '[]').length + '</span></div>' +
+    '<div><span>Customers:</span><span class="val">' + JSON.parse(localStorage.getItem('d_customers') || '[]').length + '</span></div>';
+}
+
+let pendingData = null;
+
+function loadFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      pendingData = JSON.parse(ev.target.result);
+      const s = pendingData.filter(x => !x.isReturn);
+      const r = pendingData.filter(x => x.isReturn);
+      document.getElementById('preview').style.display = 'block';
+      document.getElementById('previewStats').innerHTML = '<h3 style="color:#6abf69;margin-bottom:8px">Data to Import</h3>' +
+        '<div><span>Sales:</span><span class="val">' + s.length + '</span></div>' +
+        '<div><span>Returns:</span><span class="val">' + r.length + '</span></div>' +
+        '<div><span>Total Revenue:</span><span class="val">EGP ' + s.reduce((a,b) => a + b.total, 0).toLocaleString() + '</span></div>' +
+        '<div><span>Date Range:</span><span class="val">' + new Date(Math.min(...pendingData.map(x=>x.date))).toLocaleDateString() + ' → ' + new Date(Math.max(...pendingData.map(x=>x.date))).toLocaleDateString() + '</span></div>';
+      msg('File loaded! Click IMPORT to add to system.', '#6abf69');
+    } catch(err) { msg('Error: ' + err.message, '#e06060'); }
+  };
+  reader.readAsText(file);
+}
+
+function doImport() {
+  if (!pendingData) return;
+  const existing = JSON.parse(localStorage.getItem('d_sales') || '[]');
+  const existingIds = new Set(existing.map(s => s.txn));
+  let added = 0, skipped = 0;
+  pendingData.forEach(s => {
+    if (existingIds.has(s.txn)) { skipped++; return; }
+    existing.push(s);
+    added++;
+  });
+  localStorage.setItem('d_sales', JSON.stringify(existing));
+  msg('✓ ' + added + ' transactions imported! (' + skipped + ' duplicates skipped)', '#6abf69');
+  showCurrent();
+  pendingData = null;
+}
+
+function clearAll() {
+  if (!confirm('⚠️ This will DELETE ALL sales data. Are you sure?')) return;
+  localStorage.setItem('d_sales', '[]');
+  msg('All sales data cleared.', '#e06060');
+  showCurrent();
+}
+
+function msg(text, color) { 
+  document.getElementById('msg').innerHTML = '<span style="color:' + color + '">' + text + '</span>'; 
+}
+
+showCurrent();
+</script></body></html>
