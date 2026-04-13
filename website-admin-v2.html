@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>DRAFT — Website Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#f0ece6;font-family:'Outfit',sans-serif;min-height:100vh}
+header{background:#131311;border-bottom:1px solid #2a2822;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+header h1{font-family:'Bebas Neue';font-size:22px;letter-spacing:8px;color:#c8b07a}
+.nav-tabs{display:flex;gap:4px;background:#131311;padding:12px 24px;border-bottom:1px solid #2a2822;overflow-x:auto}
+.nav-tab{padding:8px 16px;border-radius:8px;background:transparent;border:none;color:#7a7468;cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap;font-weight:500}
+.nav-tab.active{background:rgba(200,176,122,0.1);color:#c8b07a}
+.container{padding:20px;max-width:1400px;margin:0 auto}
+.page{display:none}.page.active{display:block}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search{flex:1;min-width:200px;padding:10px 14px;background:#131311;border:1px solid #2a2822;border-radius:8px;color:#f0ece6;font-size:13px;font-family:inherit;outline:none}
+.btn{padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;letter-spacing:0.5px}
+.btn.primary{background:#c8b07a;color:#0a0a0a}
+.btn.secondary{background:transparent;border:1px solid #2a2822;color:#b5ae9e}
+.btn.danger{background:rgba(224,96,96,0.15);color:#e06060}
+.btn.sm{padding:6px 12px;font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.card{background:#131311;border:1px solid #2a2822;border-radius:10px;padding:14px;cursor:pointer;transition:all 0.2s}
+.card:hover{border-color:#c8b07a;transform:translateY(-2px)}
+.card .img{width:100%;aspect-ratio:1;background:#1a1917;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:10px}
+.card .name{font-size:12px;font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .cat{font-size:10px;color:#7a7468;margin-bottom:6px}
+.card .price{font-size:13px;color:#c8b07a;font-weight:700}
+.card .stock{font-size:10px;color:#7a7468;margin-top:2px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600}
+.badge.out{background:rgba(224,96,96,0.2);color:#e06060}
+.badge.low{background:rgba(232,168,56,0.2);color:#e8a838}
+table{width:100%;border-collapse:collapse;background:#131311;border-radius:10px;overflow:hidden}
+th{text-align:left;padding:10px 14px;font-size:10px;font-weight:500;letter-spacing:1px;color:#7a7468;background:#1a1917;text-transform:uppercase}
+td{padding:10px 14px;font-size:12px;border-bottom:1px solid #2a2822}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal.open{display:flex}
+.modal-box{background:#131311;border:1px solid #2a2822;border-radius:12px;padding:24px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto}
+.modal-box h3{color:#c8b07a;margin-bottom:16px;font-size:16px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;color:#b5ae9e;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;background:#1a1917;border:1px solid #2a2822;border-radius:6px;color:#f0ece6;font-size:13px;font-family:inherit;outline:none}
+.form-group input:focus,.form-group select:focus{border-color:#c8b07a}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cat-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#1a1917;border-radius:16px;margin:4px;font-size:12px}
+.cat-chip button{background:none;border:none;color:#e06060;cursor:pointer;font-size:14px}
+.bundle-item{display:flex;justify-content:space-between;align-items:center;padding:8px;background:#1a1917;border-radius:6px;margin-bottom:6px;font-size:12px}
+@media(max-width:768px){.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+</style></head><body>
+
+<header>
+  <div><h1>DRAFT</h1></div>
+  <a href="/" style="color:#7a7468;font-size:12px;text-decoration:none">← Site</a>
+</header>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showPage('products')">Products</button>
+  <button class="nav-tab" onclick="showPage('categories')">Categories</button>
+  <button class="nav-tab" onclick="showPage('bundles')">Bundles</button>
+  <button class="nav-tab" onclick="showPage('customers')">Customers</button>
+  <button class="nav-tab" onclick="showPage('orders')">Orders</button>
+</div>
+
+<div class="container">
+  <!-- PRODUCTS -->
+  <div class="page active" id="page-products">
+    <div class="toolbar">
+      <input class="search" id="prodSearch" placeholder="Search products..." oninput="renderProducts()">
+      <select class="search" id="prodCat" style="max-width:180px;flex:0" onchange="renderProducts()"></select>
+      <button class="btn primary" onclick="openProductModal()">+ Add Product</button>
+    </div>
+    <div class="grid" id="productsGrid"></div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="page" id="page-categories">
+    <div class="toolbar">
+      <h2 style="font-size:16px">Manage Categories</h2>
+      <button class="btn primary" onclick="addCategory()">+ Add Category</button>
+    </div>
+    <div id="catsList" style="background:#131311;border:1px solid #2a2822;border-radius:10px;padding:16px"></div>
+  </div>
+
+  <!-- BUNDLES -->
+  <div class="page" id="page-bundles">
+    <div class="toolbar">
+      <h2 style="font-size:16px">Product Bundles / Offers</h2>
+      <button class="btn primary" onclick="openBundleModal()">+ Create Bundle</button>
+    </div>
+    <div id="bundlesList"></div>
+  </div>
+
+  <!-- CUSTOMERS -->
+  <div class="page" id="page-customers">
+    <div class="toolbar">
+      <input class="search" id="custSearch" placeholder="Search customers..." oninput="renderCustomers()">
+    </div>
+    <div style="overflow-x:auto"><table id="custTable"></table></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="page" id="page-orders">
+    <div style="padding:40px;text-align:center;color:#7a7468">
+      <p>Online orders management is in the separate admin page.</p>
+      <a href="website-admin.html" class="btn primary" style="display:inline-block;margin-top:16px;text-decoration:none">→ Go to Orders Admin</a>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal" id="productModal">
+  <div class="modal-box">
+    <h3 id="prodModalTitle">Add Product</h3>
+    <div class="form-group"><label>Name</label><input id="pName"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Category</label><select id="pCat"></select></div>
+      <div class="form-group"><label>Size</label><select id="pSize"><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>Free</option><option>38</option><option>39</option><option>40</option><option>41</option><option>42</option><option>43</option><option>44</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Cost</label><input type="number" id="pCost"></div>
+      <div class="form-group"><label>Price</label><input type="number" id="pPrice"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Stock</label><input type="number" id="pStock"></div>
+      <div class="form-group"><label>SKU</label><input id="pSku"></div>
+    </div>
+    <div class="form-group"><label>Description</label><textarea id="pDesc" rows="3" style="font-family:inherit"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn secondary" onclick="closeProductModal()">Cancel</button>
+      <button class="btn primary" onclick="saveProduct()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bundle Modal -->
+<div class="modal" id="bundleModal">
+  <div class="modal-box">
+    <h3 id="bundleModalTitle">Create Bundle</h3>
+    <div class="form-group"><label>Bundle Name</label><input id="bName" placeholder="e.g. Winter Essentials"></div>
+    <div class="form-group"><label>Description</label><textarea id="bDesc" rows="2" style="font-family:inherit"></textarea></div>
+    <div class="form-group">
+      <label>Products in Bundle</label>
+      <select id="bProdSelect" onchange="addBundleProduct()"><option value="">Add product...</option></select>
+      <div id="bProdList" style="margin-top:8px"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Regular Price (auto)</label><input type="number" id="bRegPrice" readonly style="opacity:0.5"></div>
+      <div class="form-group"><label>Bundle Price</label><input type="number" id="bPrice"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn secondary" onclick="closeBundleModal()">Cancel</button>
+      <button class="btn primary" onclick="saveBundle()">Save Bundle</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ld=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return[]}};
+const sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const gid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const fm=n=>'EGP '+(n||0).toLocaleString();
+const ej={Hoodies:'🧥','T-Shirts':'👕',Jackets:'🧥',Jeans:'👖',Pants:'👖',Shoes:'👟',Accessories:'🧢',Shirts:'👔',Shirwal:'👖',Sweatshirts:'🧥',Spinches:'🎽',Trikoo:'👕',Home:'🏠',Offers:'🎁'};
+
+let editingProduct=null,editingBundle=null,bundleProducts=[];
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  event.target.classList.add('active');
+  if(p==='products')renderProducts();
+  if(p==='categories')renderCategories();
+  if(p==='bundles')renderBundles();
+  if(p==='customers')renderCustomers();
+}
+
+// ═══ CATEGORIES ═══
+function getCategories(){
+  const custom=ld('d_categories');
+  const fromProducts=[...new Set(ld('d_products').map(p=>p.category))];
+  return [...new Set([...custom,...fromProducts])].filter(Boolean).sort();
+}
+function addCategory(){
+  const n=prompt('Category name:');
+  if(!n)return;
+  const cats=ld('d_categories');
+  if(!cats.includes(n))cats.push(n);
+  sv('d_categories',cats);
+  renderCategories();
+}
+function deleteCategory(c){
+  const count=ld('d_products').filter(p=>p.category===c).length;
+  if(count>0){alert(`Cannot delete. ${count} products use this category.`);return}
+  if(!confirm('Delete category?'))return;
+  const cats=ld('d_categories').filter(x=>x!==c);
+  sv('d_categories',cats);
+  renderCategories();
+}
+function renameCategory(oldName){
+  const n=prompt('New name:',oldName);
+  if(!n||n===oldName)return;
+  const prods=ld('d_products').map(p=>p.category===oldName?{...p,category:n}:p);
+  sv('d_products',prods);
+  const cats=ld('d_categories').map(c=>c===oldName?n:c);
+  sv('d_categories',cats);
+  renderCategories();
+}
+function renderCategories(){
+  const cats=getCategories();
+  const prods=ld('d_products');
+  document.getElementById('catsList').innerHTML=cats.map(c=>{
+    const items=prods.filter(p=>p.category===c);
+    const avgCost=items.length?items.reduce((a,p)=>a+p.cost,0)/items.length:0;
+    const totalStock=items.reduce((a,p)=>a+p.stock,0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #2a2822">
+      <div>
+        <div style="font-size:14px;font-weight:500">${c}</div>
+        <div style="font-size:11px;color:#7a7468">${items.length} products · Avg cost: ${fm(avgCost)} · Stock: ${totalStock}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm secondary" onclick="renameCategory('${c}')">Rename</button>
+        <button class="btn sm danger" onclick="deleteCategory('${c}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('')||'<div style="text-align:center;padding:20px;color:#7a7468">No categories yet</div>';
+}
+
+// ═══ PRODUCTS ═══
+function renderProducts(){
+  const prods=ld('d_products');
+  const cats=getCategories();
+  document.getElementById('prodCat').innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const s=document.getElementById('prodSearch').value.toLowerCase();
+  const f=document.getElementById('prodCat').value;
+  const filtered=prods.filter(p=>(!s||p.name.toLowerCase().includes(s))&&(!f||p.category===f));
+  document.getElementById('productsGrid').innerHTML=filtered.map(p=>`
+    <div class="card" onclick="editProduct('${p.id}')">
+      <div class="img">${ej[p.category]||'📦'}</div>
+      <div class="name">${p.name}</div>
+      <div class="cat">${p.category} · ${p.size||'Free'}</div>
+      <div class="price">${fm(p.price)}</div>
+      <div class="stock">${p.stock===0?'<span class="badge out">OUT</span>':p.stock<=5?'<span class="badge low">Low: '+p.stock+'</span>':p.stock+' in stock'}</div>
+    </div>
+  `).join('')||'<div style="text-align:center;padding:40px;color:#7a7468;grid-column:1/-1">No products</div>';
+}
+
+function openProductModal(){
+  editingProduct=null;
+  document.getElementById('prodModalTitle').textContent='Add Product';
+  ['pName','pCost','pPrice','pStock','pSku','pDesc'].forEach(id=>document.getElementById(id).value='');
+  const cats=getCategories();
+  document.getElementById('pCat').innerHTML=cats.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('productModal').classList.add('open');
+}
+function editProduct(id){
+  const p=ld('d_products').find(x=>x.id===id);
+  if(!p)return;
+  editingProduct=id;
+  document.getElementById('prodModalTitle').textContent='Edit Product';
+  const cats=getCategories();
+  document.getElementById('pCat').innerHTML=cats.map(c=>`<option ${c===p.category?'selected':''}>${c}</option>`).join('');
+  document.getElementById('pName').value=p.name;
+  document.getElementById('pSize').value=p.size||'M';
+  document.getElementById('pCost').value=p.cost;
+  document.getElementById('pPrice').value=p.price;
+  document.getElementById('pStock').value=p.stock;
+  document.getElementById('pSku').value=p.sku||'';
+  document.getElementById('pDesc').value=p.desc||'';
+  document.getElementById('productModal').classList.add('open');
+}
+function closeProductModal(){document.getElementById('productModal').classList.remove('open')}
+function saveProduct(){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){alert('Name required');return}
+  const data={name,category:document.getElementById('pCat').value,size:document.getElementById('pSize').value,cost:+document.getElementById('pCost').value||0,price:+document.getElementById('pPrice').value||0,stock:+document.getElementById('pStock').value||0,sku:document.getElementById('pSku').value,desc:document.getElementById('pDesc').value,barcode:'',supplier:''};
+  const prods=ld('d_products');
+  if(editingProduct){
+    const i=prods.findIndex(p=>p.id===editingProduct);
+    if(i>=0)prods[i]={...prods[i],...data};
+  }else prods.push({id:gid(),...data});
+  sv('d_products',prods);
+  if(editingProduct&&confirm('Also delete this product?')){
+    if(confirm('Really delete?'))sv('d_products',prods.filter(p=>p.id!==editingProduct));
+  }
+  closeProductModal();renderProducts();
+}
+
+// ═══ BUNDLES ═══
+function renderBundles(){
+  const bundles=ld('d_bundles');
+  document.getElementById('bundlesList').innerHTML=bundles.map(b=>{
+    const prods=ld('d_products');
+    const items=b.products.map(pid=>prods.find(p=>p.id===pid)).filter(Boolean);
+    const regular=items.reduce((a,p)=>a+p.price,0);
+    const savings=regular-b.price;
+    return `<div style="background:#131311;border:1px solid #2a2822;border-radius:10px;padding:16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:#c8b07a">${b.name}</div>
+          <div style="font-size:11px;color:#7a7468;margin-top:2px">${b.desc||''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:#7a7468;text-decoration:line-through">${fm(regular)}</div>
+          <div style="font-size:16px;font-weight:700;color:#6abf69">${fm(b.price)}</div>
+          <div style="font-size:10px;color:#6abf69">Save ${fm(savings)}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">${items.map(i=>`<div class="bundle-item"><span>${i.name}</span><span>${fm(i.price)}</span></div>`).join('')}</div>
+      <button class="btn sm danger" onclick="deleteBundle('${b.id}')">Delete Bundle</button>
+    </div>`;
+  }).join('')||'<div style="text-align:center;padding:40px;color:#7a7468">No bundles yet. Create your first bundle to offer discounts on multiple products.</div>';
+}
+function openBundleModal(){
+  editingBundle=null;bundleProducts=[];
+  ['bName','bDesc','bPrice','bRegPrice'].forEach(id=>document.getElementById(id).value='');
+  const prods=ld('d_products').filter(p=>p.stock>0);
+  document.getElementById('bProdSelect').innerHTML='<option value="">Add product...</option>'+prods.map(p=>`<option value="${p.id}">${p.name} - ${fm(p.price)}</option>`).join('');
+  document.getElementById('bProdList').innerHTML='';
+  document.getElementById('bundleModal').classList.add('open');
+}
+function addBundleProduct(){
+  const sel=document.getElementById('bProdSelect');
+  if(!sel.value)return;
+  if(!bundleProducts.includes(sel.value))bundleProducts.push(sel.value);
+  sel.value='';
+  updateBundleDisplay();
+}
+function removeBundleProduct(pid){
+  bundleProducts=bundleProducts.filter(p=>p!==pid);
+  updateBundleDisplay();
+}
+function updateBundleDisplay(){
+  const prods=ld('d_products');
+  const items=bundleProducts.map(pid=>prods.find(p=>p.id===pid)).filter(Boolean);
+  const total=items.reduce((a,p)=>a+p.price,0);
+  document.getElementById('bRegPrice').value=total;
+  document.getElementById('bProdList').innerHTML=items.map(i=>`<div class="bundle-item"><span>${i.name}</span><button class="btn sm danger" onclick="removeBundleProduct('${i.id}')">×</button></div>`).join('');
+}
+function closeBundleModal(){document.getElementById('bundleModal').classList.remove('open')}
+function saveBundle(){
+  const name=document.getElementById('bName').value.trim();
+  const price=+document.getElementById('bPrice').value;
+  if(!name||!price||!bundleProducts.length){alert('Fill name, price, and add products');return}
+  const bundles=ld('d_bundles');
+  bundles.push({id:gid(),name,desc:document.getElementById('bDesc').value,products:bundleProducts,price,createdAt:Date.now()});
+  sv('d_bundles',bundles);
+  closeBundleModal();renderBundles();
+}
+function deleteBundle(id){
+  if(!confirm('Delete bundle?'))return;
+  sv('d_bundles',ld('d_bundles').filter(b=>b.id!==id));
+  renderBundles();
+}
+
+// ═══ CUSTOMERS ═══
+function renderCustomers(){
+  const custs=ld('d_customers');
+  const s=document.getElementById('custSearch').value.toLowerCase();
+  const filtered=custs.filter(c=>!s||c.name.toLowerCase().includes(s)||c.phone.includes(s));
+  document.getElementById('custTable').innerHTML=`<thead><tr><th>Name</th><th>Phone</th><th>Discount</th><th>Points</th><th>Spent</th><th></th></tr></thead><tbody>${filtered.map(c=>`<tr><td>${c.name}</td><td style="font-family:monospace">${c.phone}</td><td>${c.disc||0}%</td><td>${c.points||0}</td><td style="color:#c8b07a">${fm(c.spent||0)}</td><td><button class="btn sm danger" onclick="deleteCustomer('${c.id}')">Delete</button></td></tr>`).join('')}</tbody>`;
+}
+function deleteCustomer(id){
+  if(!confirm('Delete customer?'))return;
+  sv('d_customers',ld('d_customers').filter(c=>c.id!==id));
+  renderCustomers();
+}
+
+renderProducts();
+</script></body></html>
